@@ -38,7 +38,7 @@ class PilihanGandaKomplekService implements TipeSoalInterface
             ]);
 
             # Acak soal bila di set
-            if($setting['acak_soal'] == "1") {
+            if(isset($setting['acak_soal']) && $setting['acak_soal'] == "1") {
                 $complex = $complex->inRandomOrder();
             } else {
                 $complex = $complex->orderBy('created_at');
@@ -99,11 +99,39 @@ class PilihanGandaKomplekService implements TipeSoalInterface
                 return $item->id;
             })->toArray();
 
-            $correct = 0;
             $complex = array_diff( $request->jawab_complex, [0] );
-            if (array_diff($array,$complex) == array_diff($complex,$array)) {
-                $correct = 1;
+            $correct = 0;
+
+            // Ambil setting jadwal untuk cek mode penilaian (mutlak/proporsional)
+            // Pastikan struktur JSON setting di database memiliki key 'pg_kompleks_algo' atau sesuaikan
+            $jadwal = DB::table('jadwals')->where('id', $jawaban_peserta->jadwal_id)->select('setting')->first();
+            $setting = $jadwal && $jadwal->setting ? json_decode($jadwal->setting, true) : [];
+            // Opsi: 'mutlak' (default) atau 'proporsional'
+            $algoritma_penilaian = isset($setting['pg_kompleks_algo']) ? $setting['pg_kompleks_algo'] : 'mutlak';
+
+            if ($algoritma_penilaian == 'proporsional') {
+                // Logika Proporsional
+                $jumlah_kunci = count($array);
+                $jumlah_dipilih = count($complex);
+                
+                // Syarat: Jumlah jawaban yang dipilih tidak melebihi jumlah kunci jawaban
+                if ($jumlah_dipilih <= $jumlah_kunci && $jumlah_kunci > 0) {
+                    // Hitung irisan (jawaban benar yang dipilih user)
+                    $jawaban_benar = count(array_intersect($array, $complex));
+                    
+                    if ($jawaban_benar > 0) {
+                        // Poin proporsional (Desimal)
+                        $correct = round($jawaban_benar / $jumlah_kunci, 2);
+                    }
+                }
+            } else {
+                // Logika Mutlak (Bawaan)
+                // Harus sama persis
+                if (array_diff($array, $complex) == array_diff($complex, $array)) {
+                    $correct = 1;
+                }
             }
+
             $jawaban_peserta->iscorrect = $correct;
         }
 

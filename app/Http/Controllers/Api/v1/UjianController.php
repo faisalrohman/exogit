@@ -79,6 +79,12 @@ class UjianController extends Controller
 
         $user = $request->user();
 
+        // [MODIFIKASI] Set default algo penilaian jika tidak ada
+        $setting = $request->setting;
+        if (!isset($setting['pg_kompleks_algo'])) {
+            $setting['pg_kompleks_algo'] = 'mutlak';
+        }
+
         $data = [
             'mulai'             => date('H:i:s', strtotime($request->mulai)),
             'lama'              => $request->lama*60,
@@ -86,7 +92,7 @@ class UjianController extends Controller
             'status_ujian'      => 0,
             'alias'             => $request->alias,
             'event_id'          => $request->event_id == '' ? null : $request->event_id,
-            'setting'           => $request->setting,
+            'setting'           => $setting, // Gunakan variabel $setting yang sudah dimodifikasi
             'mulai_sesi'        => array_map(function($item) {
                 return date('H:i:s', strtotime($item));
             }, $request->mulai_sesi),
@@ -172,13 +178,19 @@ class UjianController extends Controller
             'min_test'      => 'required|int'
         ]);
 
+        // [MODIFIKASI] Set default algo penilaian jika tidak ada
+        $setting = $request->setting;
+        if (!isset($setting['pg_kompleks_algo'])) {
+            $setting['pg_kompleks_algo'] = 'mutlak';
+        }
+
         $data = [
             'mulai'         => date('H:i:s', strtotime($request->mulai)),
             'lama'          => $request->lama*60,
             'tanggal'       => date('Y-m-d', strtotime($request->tanggal)),
             'alias'         => $request->alias,
             'event_id'      => $request->event_id == '' ? null : $request->event_id,
-            'setting'       => $request->setting,
+            'setting'       => $setting, // Gunakan variabel $setting
             'mulai_sesi'    => array_map(function($item) {
                 return date('H:i:s', strtotime($item));
             }, $request->mulai_sesi),
